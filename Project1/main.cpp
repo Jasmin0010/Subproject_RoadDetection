@@ -4,6 +4,8 @@
 #include <vector>
 #include "opencv2/opencv.hpp"
 #include "Detector.h"
+#include <opencv2/imgproc/imgproc.hpp>  
+
 
 int main()
 {
@@ -14,7 +16,7 @@ int main()
 	vector<Point> lane;
 	string dir;
 
-	VideoCapture video("clip2.mp4");  //영상 불러오기
+	VideoCapture video("clip1.mp4");  //영상 불러오기
 
 	if (!video.isOpened())
 	{
@@ -26,10 +28,12 @@ int main()
 	video.read(img_frame);
 	if (img_frame.empty()) return -1;
 
+
 	VideoWriter writer;
 	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');  //원하는 코덱 선택
-	double fps = 25.0;  //프레임
+	double fps = 20.0;  //프레임
 	string filename = "./result.avi";  //결과 파일
+	
 
 	writer.open(filename, codec, fps, img_frame.size(), CV_8UC3);
 	if (!writer.isOpened()) {
@@ -78,6 +82,7 @@ int main()
 			imwrite("image_result.jpg", image);  //캡쳐하여 사진 저장
 
 		//11. 결과 영상 출력
+		resize(image, image, Size(1024, 720), 0, 0, INTER_LINEAR);
 		imshow("result", image);
 
 		//esc 키 종료
