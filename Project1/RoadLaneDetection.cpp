@@ -10,17 +10,20 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 	/*
 		흰색/노란색 색상의 범위를 정해 해당되는 차선을 필터링한다.
 	*/
-	Mat output;
+	Mat output, print;
 	UMat img_hsv;
 	UMat white_mask, white_image;
 	UMat yellow_mask, yellow_image;
+	UMat blue_mask, blue_image;
 	img_frame.copyTo(output);
 
 	//차선 색깔 범위 
-	Scalar lower_white = Scalar(200, 200, 200); //흰색 차선 (RGB)
+	Scalar lower_white = Scalar(150, 150, 150); //흰색 차선 (RGB)
 	Scalar upper_white = Scalar(255, 255, 255);
 	Scalar lower_yellow = Scalar(10, 100, 100); //노란색 차선 (HSV)
 	Scalar upper_yellow = Scalar(40, 255, 255);
+	Scalar lower_blue = Scalar(80, 50, 50); //파란색 차선 (HSV) 
+	Scalar upper_blue = Scalar(130, 100, 150);
 
 	//흰색 필터링
 	inRange(output, lower_white, upper_white, white_mask);
@@ -32,8 +35,22 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 	inRange(img_hsv, lower_yellow, upper_yellow, yellow_mask);
 	bitwise_and(output, output, yellow_image, yellow_mask);
 
+	//imshow("yellow_image", yellow_image);
+
+	//파란색 필터링
+	inRange(img_hsv, lower_blue, upper_blue, blue_mask);
+	bitwise_and(output, output, blue_image, blue_mask);
+
+	//imshow("blue_image", blue_image);
+
 	//두 영상을 합친다.
 	addWeighted(white_image, 1.0, yellow_image, 1.0, 0.0, output);
+	addWeighted(output, 1.0, blue_image, 1.0, 0.0, output);
+
+	output.copyTo(print);
+	resize(print, print, Size(1024, 720), 0, 0, INTER_LINEAR);
+	namedWindow("color_selected image");
+	imshow("color_selected image", print);
 	return output;
 }
 
