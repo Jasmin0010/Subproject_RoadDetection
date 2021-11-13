@@ -14,9 +14,9 @@ int main()
 	vector<Vec4i> lines;
 	vector<vector<Vec4i> > separated_lines;
 	vector<Point> lane;
-	string dir;
+	bool isitstraight;
 
-	VideoCapture video("clip2.mp4");  //영상 불러오기
+	VideoCapture video("clip3.mp4");  //영상 불러오기
 
 	if (!video.isOpened())
 	{
@@ -83,10 +83,10 @@ int main()
 			lane = roadLaneDetector.regression(separated_lines, img_frame);
 
 			//8. 진행 방향 예측
-			dir = roadLaneDetector.predictDir();
+			isitstraight = roadLaneDetector.predictDir();
 
 			//9. 영상에 최종 차선을 선으로 그리고 내부 다각형을 색으로 채운다. 예측 진행 방향 텍스트를 영상에 출력
-			image = roadLaneDetector.drawLine(result, lane, dir);
+			image = roadLaneDetector.drawLine(result, lane, isitstraight);
 			//image = roadLaneDetector.drawLine(image, lane, dir);
 		}
 
@@ -168,10 +168,10 @@ int main()
 //		lane = roadLaneDetector.regression(separated_lines, img_frame);
 //
 //		//8. 진행 방향 예측
-//		dir = roadLaneDetector.predictDir();
+//		isitstraight = roadLaneDetector.predictDir();
 //
-//		//9. 영상에 최종 차선을 선으로 그리고 내부 다각형을 색으로 채운다. 예측 진행 방향 텍스트를 영상에 출력
-//		image = roadLaneDetector.drawLine(result, lane, dir);
+//		9. 영상에 최종 차선을 선으로 그리고 내부 다각형을 색으로 채운다. 예측 진행 방향 텍스트를 영상에 출력
+//		image = roadLaneDetector.drawLine(result, lane, isitstraight);
 //		//image = roadLaneDetector.drawLine(image, lane, dir);
 //	}
 //

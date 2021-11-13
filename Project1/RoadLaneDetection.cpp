@@ -22,7 +22,7 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 	Scalar upper_white = Scalar(255, 255, 255);
 	Scalar lower_yellow = Scalar(10, 100, 100); //노란색 차선 (HSV)
 	Scalar upper_yellow = Scalar(40, 255, 255);
-	Scalar lower_blue = Scalar(80, 50, 50); //파란색 차선 (HSV) 
+	Scalar lower_blue = Scalar(80, 40, 50); //파란색 차선 (HSV) 
 	Scalar upper_blue = Scalar(130, 100, 150);
 
 	//흰색 필터링
@@ -210,29 +210,32 @@ vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines,
 	return output;
 }
 
-string RoadLaneDetector::predictDir() {
+bool RoadLaneDetector::predictDir() {
 	/*
 		두 차선이 교차하는 지점(사라지는 점)이 중심점으로부터
 		왼쪽에 있는지 오른쪽에 있는지로 진행방향을 예측한다.
 	*/
 
 	string output;
-	double x, threshold = 10;
+	double x, threshold = 100;
 
 	//두 차선이 교차하는 지점 계산
 	x = (double)(((right_m * right_b.x) - (left_m * left_b.x) - right_b.y + left_b.y) / (right_m - left_m));
 
-	if (x >= (center - threshold) && x <= (center + threshold))
-		output = "Straight";
-	else if (x > center + threshold)
+	if (x >= (center - threshold) && x <= (center + threshold)) {
+		return true;
+	}
+	else {
+		return false;
+	}
+	/*else if (x > center + threshold)
 		output = "Right Turn";
 	else if (x < center - threshold)
-		output = "Left Turn";
+		output = "Left Turn";*/
 
-	return output;
 }
 
-Mat RoadLaneDetector::drawLine(Mat img_input, vector<Point> lane, string dir) {
+Mat RoadLaneDetector::drawLine(Mat img_input, vector<Point> lane, bool isitstraight) {
 	/*
 		좌우 차선을 경계로 하는 내부 다각형을 투명하게 색을 채운다.
 		예측 진행 방향 텍스트를 영상에 출력한다.
@@ -248,15 +251,25 @@ Mat RoadLaneDetector::drawLine(Mat img_input, vector<Point> lane, string dir) {
 	poly_points.push_back(lane[1]);
 	poly_points.push_back(lane[3]);
 
-	fillConvexPoly(output, poly_points, Scalar(0, 230, 30), LINE_AA, 0);  //다각형 색 채우기
+	fillConvexPoly(output, poly_points, Scalar(230, 30, 0), LINE_AA, 0);  //다각형 색 채우기
 	addWeighted(output, 0.3, img_input, 0.7, 0, img_input);  //영상 합하기
 
 	//예측 진행 방향 텍스트를 영상에 출력
-	putText(img_input, dir, Point(520, 100), FONT_HERSHEY_PLAIN, 3, Scalar(255, 255, 255), 3, LINE_AA);
+	if (isitstraight) {
+		putText(img_input, "Good", Point(520, 100), FONT_HERSHEY_PLAIN, 3, Scalar(255, 255, 255), 3, LINE_AA);
 
-	//좌우 차선 선 그리기
-	line(img_input, lane[0], lane[1], Scalar(0, 255, 255), 5, LINE_AA);
-	line(img_input, lane[2], lane[3], Scalar(0, 255, 255), 5, LINE_AA);
+		//좌우 차선 선 그리기
+		line(img_input, lane[0], lane[1], Scalar(0, 255, 255), 5, LINE_AA);
+		line(img_input, lane[2], lane[3], Scalar(0, 255, 255), 5, LINE_AA);
+	}
+	else {
+		putText(img_input, "Warning", Point(520, 100), FONT_HERSHEY_PLAIN, 3, Scalar(0, 0, 255), 3.8, LINE_AA);
+		//좌우 차선 선 그리기
+		line(img_input, lane[0], lane[1], Scalar(0, 0, 255), 5, LINE_AA);
+		line(img_input, lane[2], lane[3], Scalar(0, 0, 255), 5, LINE_AA);
+	}
+
+	
 
 	return img_input;
 }

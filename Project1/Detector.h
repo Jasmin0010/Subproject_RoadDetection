@@ -19,8 +19,8 @@ public:
 	vector<Vec4i> houghLines(Mat img_mask);
 	vector<vector<Vec4i> > separateLine(Mat img_edges, vector<Vec4i> lines);
 	vector<Point> regression(vector<vector<Vec4i> > separated_lines, Mat img_input);
-	string predictDir();
-	Mat drawLine(Mat img_input, vector<Point> lane, string dir);
+	bool predictDir();
+	Mat drawLine(Mat img_input, vector<Point> lane, bool isitstraight);
 
 private:
 	double size, center;
@@ -31,7 +31,7 @@ private:
 	//관심 영역 범위 계산시 사용 
 	double poly_bottom_width = 0.83;  //사다리꼴 아래쪽 가장자리 너비 계산을 위한 백분율
 	double poly_top_width = 0.06;     //사다리꼴 위쪽 가장자리 너비 계산을 위한 백분율
-	double poly_height = 0.3;         //사다리꼴 높이 계산을 위한 백분율
+	double poly_height = 0.35;         //사다리꼴 높이 계산을 위한 백분율
 
 
 };
