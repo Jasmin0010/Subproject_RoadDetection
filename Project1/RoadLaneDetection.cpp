@@ -7,9 +7,7 @@
 
 
 Mat RoadLaneDetector::filter_colors(Mat img_frame) {
-	/*
-		흰색/노란색 색상의 범위를 정해 해당되는 차선을 필터링한다.
-	*/
+	
 	Mat output, print;
 	UMat img_hsv;
 	UMat white_mask, white_image;
@@ -18,32 +16,28 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 	img_frame.copyTo(output);
 
 	//차선 색깔 범위 
-	Scalar lower_white = Scalar(150, 150, 150); //흰색 차선 (RGB)
+	Scalar lower_white = Scalar(150, 150, 150); //white range (RGB)
 	Scalar upper_white = Scalar(255, 255, 255);
-	Scalar lower_yellow = Scalar(10, 100, 100); //노란색 차선 (HSV)
+	Scalar lower_yellow = Scalar(10, 100, 100); //yellow range(HSV)
 	Scalar upper_yellow = Scalar(40, 255, 255);
-	Scalar lower_blue = Scalar(80, 40, 50); //파란색 차선 (HSV) 
+	Scalar lower_blue = Scalar(80, 40, 50);		//blue range(HSV) 
 	Scalar upper_blue = Scalar(130, 100, 150);
 
-	//흰색 필터링
+	//white
 	inRange(output, lower_white, upper_white, white_mask);
 	bitwise_and(output, output, white_image, white_mask);
 
 	cvtColor(output, img_hsv, COLOR_BGR2HSV);
 
-	//노란색 필터링
+	//yellow
 	inRange(img_hsv, lower_yellow, upper_yellow, yellow_mask);
 	bitwise_and(output, output, yellow_image, yellow_mask);
 
-	//imshow("yellow_image", yellow_image);
-
-	//파란색 필터링
+	//blue
 	inRange(img_hsv, lower_blue, upper_blue, blue_mask);
 	bitwise_and(output, output, blue_image, blue_mask);
 
-	//imshow("blue_image", blue_image);
-
-	//두 영상을 합친다.
+	//merge
 	addWeighted(white_image, 1.0, yellow_image, 1.0, 0.0, output);
 	addWeighted(output, 1.0, blue_image, 1.0, 0.0, output);
 
@@ -56,17 +50,14 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 
 
 Mat RoadLaneDetector::limit_region(Mat img_edges) {
-	/*
-		관심 영역의 가장자리만 감지되도록 마스킹한다.
-		관심 영역의 가장자리만 표시되는 이진 영상을 반환한다.
-	*/
+
 	int width = img_edges.cols;
 	int height = img_edges.rows;
 
 	Mat output;
 	Mat mask = Mat::zeros(height, width, CV_8UC1);
 
-	//관심 영역 정점 계산
+	//masking interesting part
 	Point points[4]{
 		Point((width * (1 - poly_bottom_width)) / 2, height),
 		Point((width * (1 - poly_top_width)) / 2, height - height * poly_height),
@@ -74,10 +65,8 @@ Mat RoadLaneDetector::limit_region(Mat img_edges) {
 		Point(width - (width * (1 - poly_bottom_width)) / 2, height)
 	};
 
-	//정점으로 정의된 다각형 내부의 색상을 채워 그린다.
 	fillConvexPoly(mask, points, 4, Scalar(255, 0, 0));
 
-	//결과를 얻기 위해 edges 이미지와 mask를 곱한다.
 	bitwise_and(img_edges, mask, output);
 	return output;
 }
@@ -94,10 +83,6 @@ vector<Vec4i> RoadLaneDetector::houghLines(Mat img_mask) {
 }
 
 vector<vector<Vec4i>> RoadLaneDetector::separateLine(Mat img_edges, vector<Vec4i> lines) {
-	/*
-		검출된 모든 허프변환 직선들을 기울기 별로 정렬한다.
-		선을 기울기와 대략적인 위치에 따라 좌우로 분류한다.
-	*/
 
 	vector<vector<Vec4i>> output(2);
 	Point p1, p2;
@@ -105,26 +90,24 @@ vector<vector<Vec4i>> RoadLaneDetector::separateLine(Mat img_edges, vector<Vec4i
 	vector<Vec4i> final_lines, left_lines, right_lines;
 	double slope_thresh = 0.3;
 
-	//검출된 직선들의 기울기를 계산
+	//find gradient
 	for (int i = 0; i < lines.size(); i++) {
 		Vec4i line = lines[i];
 		p1 = Point(line[0], line[1]);
 		p2 = Point(line[2], line[3]);
 
 		double slope;
-		if (p2.x - p1.x == 0)  //코너 일 경우
+		if (p2.x - p1.x == 0)  //if it is corner
 			slope = 999.0;
 		else
 			slope = (p2.y - p1.y) / (double)(p2.x - p1.x);
 
-		//기울기가 너무 수평인 선은 제외
-		if (abs(slope) > slope_thresh) {
+		if (abs(slope) > slope_thresh) {//horizon part
 			slopes.push_back(slope);
 			final_lines.push_back(line);
 		}
 	}
 
-	//선들을 좌우 선으로 분류
 	center = (double)((img_edges.cols / 2));
 
 	for (int i = 0; i < final_lines.size(); i++) {
@@ -147,9 +130,7 @@ vector<vector<Vec4i>> RoadLaneDetector::separateLine(Mat img_edges, vector<Vec4i
 }
 
 vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines, Mat img_input) {
-	/*
-		선형 회귀를 통해 좌우 차선 각각의 가장 적합한 선을 찾는다.
-	*/
+	
 	vector<Point> output(4);
 	Point p1, p2, p3, p4;
 	Vec4d left_line, right_line;
@@ -165,10 +146,10 @@ vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines,
 		}
 
 		if (right_points.size() > 0) {
-			//주어진 contour에 최적화된 직선 추출
+
 			fitLine(right_points, right_line, DIST_L2, 0, 0.01, 0.01);
 
-			right_m = right_line[1] / right_line[0];  //기울기
+			right_m = right_line[1] / right_line[0];  //gradient
 			right_b = Point(right_line[2], right_line[3]);
 		}
 	}
@@ -183,18 +164,17 @@ vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines,
 		}
 
 		if (left_points.size() > 0) {
-			//주어진 contour에 최적화된 직선 추출
+			
 			fitLine(left_points, left_line, DIST_L2, 0, 0.01, 0.01);
 
-			left_m = left_line[1] / left_line[0];  //기울기
+			left_m = left_line[1] / left_line[0];  //gradient
 			left_b = Point(left_line[2], left_line[3]);
 		}
 	}
 
-	//좌우 선 각각의 두 점을 계산한다.
 	//y = m*x + b  --> x = (y-b) / m
-	int y1 = img_input.rows;
-	int y2 = 470;
+	int y1 = img_input.rows; //밑의 y좌표
+	int y2 = 470; //위의 y좌표
 
 	double right_x1 = ((y1 - right_b.y) / right_m) + right_b.x;
 	double right_x2 = ((y2 - right_b.y) / right_m) + right_b.x;
@@ -203,58 +183,65 @@ vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines,
 	double left_x2 = ((y2 - left_b.y) / left_m) + left_b.x;
 
 	output[0] = Point(right_x1, y1);
-	output[1] = Point(right_x2, y2);
+	output[1] = Point(right_x2, y2);//위
 	output[2] = Point(left_x1, y1);
-	output[3] = Point(left_x2, y2);
+	output[3] = Point(left_x2, y2);//위
 
 	return output;
 }
 
 bool RoadLaneDetector::predictDir() {
-	/*
-		두 차선이 교차하는 지점(사라지는 점)이 중심점으로부터
-		왼쪽에 있는지 오른쪽에 있는지로 진행방향을 예측한다.
-	*/
 
 	string output;
-	double x, threshold = 100;
+	double x, right_threshold = 100, left_threshold = 120;
 
 	//두 차선이 교차하는 지점 계산
 	x = (double)(((right_m * right_b.x) - (left_m * left_b.x) - right_b.y + left_b.y) / (right_m - left_m));
 
-	if (x >= (center - threshold) && x <= (center + threshold)) {
+	if (x >= (center - left_threshold) && x <= (center + right_threshold)) {
 		return true;
 	}
 	else {
 		return false;
 	}
-	/*else if (x > center + threshold)
-		output = "Right Turn";
-	else if (x < center - threshold)
-		output = "Left Turn";*/
+
 
 }
 
 Mat RoadLaneDetector::drawLine(Mat img_input, vector<Point> lane, bool isitstraight) {
-	/*
-		좌우 차선을 경계로 하는 내부 다각형을 투명하게 색을 채운다.
-		예측 진행 방향 텍스트를 영상에 출력한다.
-		좌우 차선을 영상에 선으로 그린다.
-	*/
 
 	vector<Point> poly_points;
 	Mat output;
 	img_input.copyTo(output);
+
+	double y_threshold = img_input.rows * 3 / 4;
+
+	if (lane[1].y < y_threshold) {
+		double right_line_gradient = (double)(lane[0].y - lane[1].y) / (double)(lane[0].x - lane[1].x);
+
+		double fixed_lane1_x = (double)(y_threshold - lane[1].y) / right_line_gradient + lane[1].x;
+		lane[1].x = fixed_lane1_x;
+		lane[1].y = y_threshold;
+	}
+
+	if (lane[3].y < y_threshold) {
+		double left_line_gradient = (double)(lane[2].y - lane[3].y) / (double)(lane[3].x - lane[2].x);
+
+		double fixed_lane3_x = (double)(lane[3].y - y_threshold) / left_line_gradient + lane[3].x;
+		lane[3].x =fixed_lane3_x;
+		lane[3].y = y_threshold;
+	}
+
 
 	poly_points.push_back(lane[2]);
 	poly_points.push_back(lane[0]);
 	poly_points.push_back(lane[1]);
 	poly_points.push_back(lane[3]);
 
-	fillConvexPoly(output, poly_points, Scalar(230, 30, 0), LINE_AA, 0);  //다각형 색 채우기
-	addWeighted(output, 0.3, img_input, 0.7, 0, img_input);  //영상 합하기
+	fillConvexPoly(output, poly_points, Scalar(230, 30, 0), LINE_AA, 0);  
+	addWeighted(output, 0.3, img_input, 0.7, 0, img_input);  //merge
 
-	//예측 진행 방향 텍스트를 영상에 출력
+	//예측 진행 방향
 	if (isitstraight) {
 		putText(img_input, "Good", Point(520, 100), FONT_HERSHEY_PLAIN, 3, Scalar(255, 255, 255), 3, LINE_AA);
 
@@ -264,12 +251,13 @@ Mat RoadLaneDetector::drawLine(Mat img_input, vector<Point> lane, bool isitstrai
 	}
 	else {
 		putText(img_input, "Warning", Point(520, 100), FONT_HERSHEY_PLAIN, 3, Scalar(0, 0, 255), 3.8, LINE_AA);
+		
 		//좌우 차선 선 그리기
 		line(img_input, lane[0], lane[1], Scalar(0, 0, 255), 5, LINE_AA);
 		line(img_input, lane[2], lane[3], Scalar(0, 0, 255), 5, LINE_AA);
 	}
-
 	
 
 	return img_input;
+
 }
