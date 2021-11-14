@@ -43,8 +43,7 @@ Mat RoadLaneDetector::filter_colors(Mat img_frame) {
 
 	output.copyTo(print);
 	resize(print, print, Size(1024, 720), 0, 0, INTER_LINEAR);
-	namedWindow("color_selected image");
-	imshow("color_selected image", print);
+	
 	return output;
 }
 
@@ -72,12 +71,9 @@ Mat RoadLaneDetector::limit_region(Mat img_edges) {
 }
 
 vector<Vec4i> RoadLaneDetector::houghLines(Mat img_mask) {
-	/*
-		관심영역으로 마스킹 된 이미지에서 모든 선을 추출하여 반환
-	*/
+	
 	vector<Vec4i> line;
 
-	//확률적용 허프변환 직선 검출 함수 
 	HoughLinesP(img_mask, line, 1, CV_PI / 180, 20, 10, 20);
 	return line;
 }
@@ -193,7 +189,7 @@ vector<Point> RoadLaneDetector::regression(vector<vector<Vec4i>> separatedLines,
 bool RoadLaneDetector::predictDir() {
 
 	string output;
-	double x, right_threshold = 100, left_threshold = 120;
+	double x, right_threshold = 70, left_threshold = 90;
 
 	//두 차선이 교차하는 지점 계산
 	x = (double)(((right_m * right_b.x) - (left_m * left_b.x) - right_b.y + left_b.y) / (right_m - left_m));

@@ -16,7 +16,7 @@ int main()
 	vector<Point> lane;
 	bool isitstraight;
 
-	VideoCapture video("clip3.mp4");  
+	VideoCapture video("clip2.mp4");  
 
 	if (!video.isOpened())
 	{
@@ -32,7 +32,7 @@ int main()
 	VideoWriter writer;
 	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');  //원하는 코덱 선택
 	double fps = video.get(CAP_PROP_FPS);  //프레임
-	string filename = "./result.avi";  //결과 파일
+	string filename = "./clip1_result.avi";  //결과 파일
 	int delay = cvRound(1000 / fps);
 	
 
@@ -79,9 +79,7 @@ int main()
 			image = roadLaneDetector.drawLine(result, lane, isitstraight);
 		}
 
-		//writer << image;
-		//if (cnt++ == 15)
-		//	imwrite("image_result.jpg", image);  //캡쳐하여 사진 저장
+		writer << image;
 
 		resize(result, result, Size(1024, 720), 0, 0, INTER_LINEAR);
 
